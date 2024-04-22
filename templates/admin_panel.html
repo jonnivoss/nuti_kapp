@@ -1,0 +1,50 @@
+<!-- admin_panel.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 50%;
+            margin: auto;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .occupied {
+            color: red;
+        }
+
+        .vacant {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    <table>
+        <tr>
+            <th>Box Number</th>
+            <th>Status</th>
+        </tr>
+        {% for box_number, status in storage_boxes.items() %}
+        <tr>
+            <td>Box {{ box_number }}</td>
+            <td class="{{ status }}">{{ status }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
