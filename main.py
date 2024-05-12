@@ -124,6 +124,46 @@ class StorageBoxes:
         #heartbeat_thread.daemon = True
         #heartbeat_thread.start()
 
+    # Removes the code once it has been used
+    def remove_code_from_file(code):
+        filename = "codes.txt"
+        temp_filename = "temp_codes.txt"  # Temporary file to store modified contents
+
+        with open(filename, "r") as input_file, open(temp_filename, "w") as output_file:
+            for line in input_file:
+                if not line.startswith(code + ":"):  # Skip the line with the code to be removed
+                    output_file.write(line)
+
+        # Rename temporary file to original filename to replace it
+        os.replace(temp_filename, filename)
+
+        # Generate a random 6-digit code
+    def generate_code():
+        random_code = str(random.randint(100000, 999999))
+
+        # Check if the code has been used before generating a new one
+        while random_code in used_codes:
+            random_code = str(random.randint(100000, 999999))
+        radioBoxValue = int(radioBoxes.value)
+        save_used_codes(random_code, radioBoxValue)
+
+    def check_code(self,):
+
+        if code == '0000':
+            self.open_door(1)
+
+    def generate_code():
+        random_code = str(random.randint(100000, 999999))
+
+        # Check if the code has been used before generating a new one
+        while random_code in used_codes:
+            random_code = str(random.randint(100000, 999999))
+        radioBoxValue = int(radioBoxes.value)
+        save_used_codes(random_code, radioBoxValue)
+
+        adminWindow.info("INFO", "Genereeritud kapile {} kood {}".format(radioBoxValue, random_code))
+
+
 
 
 class CustomerGUI:
