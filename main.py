@@ -1,6 +1,5 @@
 # box_controller.py
 
-from admin_panel import AdminPanel
 import tkinter as tk
 from flask import Flask, render_template
 import threading
@@ -10,27 +9,34 @@ import time
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import List, Tuple
+import os
 
 ##see hoiab kaste, koode ja kastide seisundit
 #ja suhtleb i2c-ga
 
-@dataclass
-class StorageBox:
-    bus: int
-    number_of_door: int
-    doors: List[Tuple[int,int,int]]
-
-    @classmethod
-    def __init__(self,bus_number, number):
-        self.number_of_door = number
-        self.bus = bus_number
-        self.doors = [(0, 0, 0) for _ in range(self.number_of_door)]
-
-
 class StorageBoxes:
     def __init__(self):
-
+        self.box_1 = {"code":0000, "door_state":0,"contains":0}
+        self.box_2 = {"code": 1234, "door_state": 0, "contains": 0}
+        self.used_codes = self.load_used_codes()
+        self.is_admin = False
         self.start_threading()
+        self.open_customer()
+
+    def open_admin(self):
+        if self.is_admin == False:
+            self.set_admin()
+            self.admin_panel = AdminPanel(self)
+            thread_2 = threading.Thread(target=self.admin_panel.start_gui())
+            thread_2.start()
+
+    def set_admin(self):
+        self.is_admin = not self.is_admin
+
+    def open_customer(self):
+        self.customer_gui = CustomerGUI(self)
+        thread = threading.Thread(target=self.customer_gui.start_gui())
+        thread.start()
 
     # Annab STM-ile teada mis uksed tema peab lahti tegema. data_size on mitu ust tehakse lahti
     def open_door(self, data_):
@@ -124,6 +130,29 @@ class StorageBoxes:
         #heartbeat_thread.daemon = True
         #heartbeat_thread.start()
 
+    def load_used_codes(self):
+        used_codes = {}
+        filename = "codes.txt"
+        if os.path.exists(filename):
+            with open(filename, "r") as file:
+                for line in file:
+                    code, door = line.strip().split(":")
+                    used_codes[code] = int(door)
+        return used_codes
+        # Generate a random 6-digit code
+    def generate_code(self,box_id):
+        random_code = str(random.randint(100000, 999999))
+
+        # Check if the code has been used before generating a new one
+        while random_code in self.used_codes:
+            random_code = str(random.randint(100000, 999999))
+        self.save_used_codes(random_code, box_id)
+    # Save used codes to a file
+    def save_used_codes(self,code_, door):
+        filename = "codes.txt"
+        with open(filename, "a") as file:
+            file.write(f"{code_}:{door}\n")
+
     # Removes the code once it has been used
     def remove_code_from_file(code):
         filename = "codes.txt"
@@ -137,39 +166,88 @@ class StorageBoxes:
         # Rename temporary file to original filename to replace it
         os.replace(temp_filename, filename)
 
-        # Generate a random 6-digit code
-    def generate_code():
-        random_code = str(random.randint(100000, 999999))
-
-        # Check if the code has been used before generating a new one
-        while random_code in used_codes:
-            random_code = str(random.randint(100000, 999999))
-        radioBoxValue = int(radioBoxes.value)
-        save_used_codes(random_code, radioBoxValue)
-
-    def check_code(self,):
-
-        if code == '0000':
+    def check_code(self,code_):
+        self.customer_gui.clear_pin()
+        if code_ == "0000":
+            print("uritan sitta keeta", self.is_admin)
+            if self.is_admin == True:
+                self.admin_panel.update_door_condition(1,1)
             self.open_door(1)
+            return 1
+        if code_ == "1337":
+            self.open_admin()
+            return 2
+        return 0
 
-    def generate_code():
-        random_code = str(random.randint(100000, 999999))
+class AdminPanel:
+    def __init__(self,storage_boxes):
+        self.storage_boxes=storage_boxes
+        print("loll")
+        self.root = tk.Tk()
+        self.root.title("Admin Panel")
 
-        # Check if the code has been used before generating a new one
-        while random_code in used_codes:
-            random_code = str(random.randint(100000, 999999))
-        radioBoxValue = int(radioBoxes.value)
-        save_used_codes(random_code, radioBoxValue)
+        self.frame = tk.Frame(self.root)
+        self.frame.pack(padx=20, pady=20)
 
-        adminWindow.info("INFO", "Genereeritud kapile {} kood {}".format(radioBoxValue, random_code))
+        # Create the first box
+        self.box1 = tk.LabelFrame(self.frame, text="Box 1", padx=10, pady=10)
+        self.box1.grid(row=0, column=0, padx=10, pady=10)
 
+        self.number1 = tk.Label(self.box1, text="1")
+        self.number1.grid(row=0, column=0, padx=5, pady=5)
 
+        self.box1_door = tk.Label(self.box1, text="Closed")
+        self.box1_door.grid(row=1, column=0, padx=5, pady=5)
+
+        self.box1_content = tk.Label(self.box1, text="Empty")
+        self.box1_content.grid(row=2, column=0, padx=5, pady=5)
+
+        self.code1 = tk.Label(self.box1, text=self.generate_code())
+        self.code1.grid(row=3, column=0, padx=5, pady=5)
+
+        # Create the second box
+        self.box2 = tk.LabelFrame(self.frame, text="Box 2", padx=10, pady=10)
+        self.box2.grid(row=0, column=1, padx=10, pady=10)
+
+        self.number2 = tk.Label(self.box2, text="2")
+        self.number2.grid(row=0, column=0, padx=5, pady=5)
+
+        self.box2_door = tk.Label(self.box2, text="Closed")
+        self.box2_door.grid(row=1, column=0, padx=5, pady=5)
+
+        self.box2_content = tk.Label(self.box2, text="Full")
+        self.box2_content.grid(row=2, column=0, padx=5, pady=5)
+
+        self.code2 = tk.Label(self.box2, text=self.generate_code())
+        self.code2.grid(row=3, column=0, padx=5, pady=5)
+
+        self.quit_button = tk.Button(self.root, text="Close",command=self.quit_admin)
+        self.quit_button.pack(pady=20)
+
+    def generate_code(self):
+        return self.storage_boxes.generate_code(1)
+
+    def quit_admin(self):
+        print("quitriong adminer")
+        self.storage_boxes.set_admin()
+        self.root.destroy()
+
+    def update_door_condition(self,door,state):
+        state_text = {1:"Open", 0:"Closed"}
+        print(state_text.get(state))
+        if door == 1:
+            self.box1_door.config(text="Open")
+        if door == 2:
+            self.box2_door.config(text="Open")
+    def start_gui(self):
+        self.root.mainloop()
 
 
 class CustomerGUI:
-    def __init__(self):
+    def __init__(self,storage_box):
+        self.storage_boxes = storage_box
         self.current_box_number = None
-        self.pin_length = 6  # You can adjust the PIN length as needed
+        self.pin_length = 4  # You can adjust the PIN length as needed
         self.pin = ""
 
         self.root = tk.Tk()
@@ -207,6 +285,7 @@ class CustomerGUI:
         clear_button = tk.Button(self.button_frame, text="Clear",width=button_width, height=button_height,font=font_def, command=self.clear_pin)
         clear_button.grid(row=3, column=2, sticky="nsew")
 
+
     def add_digit(self, digit):
         if len(self.pin) < self.pin_length:
             self.pin += str(digit)
@@ -222,7 +301,7 @@ class CustomerGUI:
 
     def try_unlock(self):
         if len(self.pin) == self.pin_length:
-            box_number = storage_boxes.check_code(int(self.pin))
+            box_number = self.storage_boxes.check_code(self.pin)
             message = ""
             if box_number == 1 :
                 message = "Box unlocked!"
@@ -230,7 +309,8 @@ class CustomerGUI:
                 message = "Admin Detected!"
             elif box_number == 0:
                 message = "Incorrect PIN!"
-            self.success_message(message)
+            print(message)
+            self.clear_pin()
 
     def success_message(self,message):
         self.pin = message
@@ -255,9 +335,8 @@ def run_web_app():
 if __name__ == "__main__":
     storage_boxes = StorageBoxes()
     # Create instances of GUI and AdminPanel
-    customer_gui = CustomerGUI()
-    customer_gui.start_gui()
-    #admin_panel = AdminPanel(storage_boxes)
+
+
 
     # Start the Flask web app in a separate thread
     #web_app_thread = threading.Thread(target=run_web_app)
