@@ -16,8 +16,8 @@ import os
 
 class StorageBoxes:
     def __init__(self):
-        self.box_1 = {"code":0000, "door_state":0,"contains":0}
-        self.box_2 = {"code": 1234, "door_state": 0, "contains": 0}
+        self.box_1 = {"code": "0000", "door_state": 0, "contains":0}
+        self.box_2 = {"code": "1234", "door_state": 0, "contains": 0}
         self.used_codes = self.load_used_codes()
         self.is_admin = False
         self.start_threading()
@@ -46,6 +46,12 @@ class StorageBoxes:
         slave_address = 21
         #bus = smbus.SMBus(1)
         print("Sending to address:", slave_address)
+        #see peaks hear beati minema
+        if data_ == 1:
+            self.box_1["door_state"] = 1
+        elif data_ == 2:
+            self.box_2["door_state"] = 1
+
         #bus.write_i2c_block_data(slave_address, command, data)
 
     def reboot_slave(self):
@@ -116,19 +122,20 @@ class StorageBoxes:
         while True:
             # Perform any necessary tasks here
             print("Heartbeat")
-
             # Request response from the slave
             self.request_response_from_slave()
-
+            if self.is_admin == True:
+                self.admin_panel.update_door_condition(1,self.box_1.get("door_state"))
+                self.admin_panel.update_door_condition(2, self.box_1.get("door_state"))
             # Sleep for 1 second
             time.sleep(1)
 
     def start_threading(self):
         print("starting hearbeats")
         #Heartbeat init
-        #heartbeat_thread = threading.Thread(target=self.heartbeat_loop)
-        #heartbeat_thread.daemon = True
-        #heartbeat_thread.start()
+        heartbeat_thread = threading.Thread(target=self.heartbeat_loop)
+        heartbeat_thread.daemon = True
+        heartbeat_thread.start()
 
     def load_used_codes(self):
         used_codes = {}
@@ -170,8 +177,6 @@ class StorageBoxes:
         self.customer_gui.clear_pin()
         if code_ == "0000":
             print("uritan sitta keeta", self.is_admin)
-            if self.is_admin == True:
-                self.admin_panel.update_door_condition(1,1)
             self.open_door(1)
             return 1
         if code_ == "1337":
@@ -205,6 +210,9 @@ class AdminPanel:
         self.code1 = tk.Label(self.box1, text=self.generate_code())
         self.code1.grid(row=3, column=0, padx=5, pady=5)
 
+        self.door_button_1 = tk.Button(self.box1, text="Ava", command=lambda i=1: self.storage_boxes.open_door(i))
+        self.door_button_1.grid(row=4,column=0,padx=5, pady=5)
+
         # Create the second box
         self.box2 = tk.LabelFrame(self.frame, text="Box 2", padx=10, pady=10)
         self.box2.grid(row=0, column=1, padx=10, pady=10)
@@ -221,6 +229,9 @@ class AdminPanel:
         self.code2 = tk.Label(self.box2, text=self.generate_code())
         self.code2.grid(row=3, column=0, padx=5, pady=5)
 
+        self.door_button_2 = tk.Button(self.box2, text="Ava", command=lambda i=1: self.storage_boxes.open_door(i))
+        self.door_button_2.grid(row=4, column=0, padx=5, pady=5)
+
         self.quit_button = tk.Button(self.root, text="Close",command=self.quit_admin)
         self.quit_button.pack(pady=20)
 
@@ -236,9 +247,16 @@ class AdminPanel:
         state_text = {1:"Open", 0:"Closed"}
         print(state_text.get(state))
         if door == 1:
-            self.box1_door.config(text="Open")
+            if state == 1:
+                self.box1_door.config(text="Open")
+            else:
+                self.box1_door.config(text="Closed")
         if door == 2:
-            self.box2_door.config(text="Open")
+            if state == 1:
+                self.box2_door.config(text="Open")
+            else:
+                self.box2_door.config(text="Closed")
+
     def start_gui(self):
         self.root.mainloop()
 
