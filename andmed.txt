@@ -1,0 +1,18 @@
+[
+    {
+        "i2c": 21,
+        "id": 1,
+        "code": 123456,
+        "lock_state": 0,
+        "door_state": 0,
+        "ir_sensor": 1
+    },
+    {
+        "i2c": 21,
+        "id": 2,
+        "code": 654321,
+        "lock_state": 0,
+        "door_state": 0,
+        "ir_sensor": 1
+    }
+]
