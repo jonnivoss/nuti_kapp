@@ -151,6 +151,9 @@ class StorageBoxes:
         if code_ == "1337":
             self.open_admin()
             return -2
+        elif code_ == "0000":
+            self.customer_gui.close_gui()
+            return -3
         for unit in self.units:
             if int(code_) == unit.code:
                 self.open_door(unit.id)
@@ -342,9 +345,9 @@ class CustomerGUI:
         self.zero_button = PushButton(self.button_box, text="0",width=5,height=2, grid=[1, 4], command=self.add_digit, args=[0])
         self.zero_button.text_size = 10
         # Create Enter and Clear buttons
-        self.enter_button = PushButton(self.button_box, text="Enter",width=5,height=2, grid=[0, 4], command=self.try_unlock)
+        self.enter_button = PushButton(self.button_box, text="ENT",width=5,height=2, grid=[0, 4], command=self.try_unlock)
         self.enter_button.text_size = 10
-        self.clear_button = PushButton(self.button_box, text="Clear",width=5,height=2, grid=[2, 4], command=self.clear_pin)
+        self.clear_button = PushButton(self.button_box, text="DEL",width=5,height=2, grid=[2, 4], command=self.clear_pin)
         self.clear_button.text_size = 10
 
     def start_gui(self):
@@ -363,7 +366,7 @@ class CustomerGUI:
         self.update_pin_entry()
 
     def try_unlock(self):
-        if self.pin == "1337":
+        if self.pin_length == 4:
             self.storage_boxes.check_code(self.pin)
             return 0
         if len(self.pin) < self.pin_length:
@@ -376,6 +379,9 @@ class CustomerGUI:
         else:
             self.app_gui.info("INFO",f"     Kapp avanes!     ")
         return -1
+
+    def close_gui(self):
+        self.app_gui.destroy()
 
 
 class UnitInfo:
