@@ -42,7 +42,6 @@ class StorageBoxes:
     def open_customer_gui(self):
         self.customer_gui = CustomerGUI(self)
         custom_thread = threading.Thread(target=self.customer_gui.start_gui())
-
     def open_admin(self):
         self.admin_panel = AdminPanel(self,self.customer_gui)
 
@@ -149,7 +148,7 @@ class StorageBoxes:
         return used_codes
 
     def check_code(self,code_):
-        if code_ == "001337":
+        if code_ == "1337":
             self.open_admin()
             return -2
         for unit in self.units:
@@ -364,6 +363,9 @@ class CustomerGUI:
         self.update_pin_entry()
 
     def try_unlock(self):
+        if self.pin == "1337":
+            self.storage_boxes.check_code(self.pin)
+            return 0
         if len(self.pin) < self.pin_length:
             self.app_gui.error("VIGA", "     Liiga lühike kood!     ")
         if len(self.pin) == self.pin_length:
@@ -373,6 +375,7 @@ class CustomerGUI:
             self.app_gui.error("VIGA", "     Vale kood!     ")
         else:
             self.app_gui.info("INFO",f"     Kapp avanes!     ")
+        return -1
 
 
 class UnitInfo:
